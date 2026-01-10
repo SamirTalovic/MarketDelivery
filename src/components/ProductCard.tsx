@@ -52,7 +52,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         opacity: product.available ? 1 : 0.6,
         position: 'relative',
         overflow: 'hidden',
-        mb: { xs: 0, sm: 0 },
+        mb: { xs: 5, sm: 0 },
       }}
     >
       {/* Discount badge */}
@@ -94,6 +94,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           width: { xs: 100, sm: 140 },
           minWidth: { xs: 100, sm: 140 },
           height: { xs: 120, sm: 160 },
+          mt:3,
           background: product.pictureUrl 
             ? 'transparent' 
             : 'linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%)',

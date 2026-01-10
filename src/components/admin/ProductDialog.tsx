@@ -63,6 +63,7 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
   });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showSalePrice, setShowSalePrice] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -97,13 +98,41 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
     }
   }, [product, categories, open]);
 
+  const handleFileSelect = (file: File) => {
+    if (file && file.type.startsWith('image/')) {
+      setForm({ ...form, picture: file });
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setForm({ ...form, picture: file });
-      // Create preview URL
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+      handleFileSelect(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleFileSelect(file);
     }
   };
 
@@ -134,52 +163,94 @@ const ProductDialog: React.FC<ProductDialogProps> = ({
       <DialogTitle>{product ? 'Izmeni artikal' : 'Novi artikal'}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          {/* Image Upload Section */}
+          {/* Image Upload Section with Drag & Drop */}
           <Box>
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
               Slika proizvoda (opciono)
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Avatar
-                src={previewUrl || undefined}
-                variant="rounded"
-                sx={{
-                  width: 100,
-                  height: 100,
-                  bgcolor: 'grey.200',
-                  fontSize: '2rem',
-                }}
-              >
-                {!previewUrl && '🛒'}
-              </Avatar>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={fileInputRef}
-                  style={{ display: 'none' }}
-                  onChange={handleFileChange}
-                />
-                <Button
-                  variant="outlined"
-                  startIcon={<CloudUploadIcon />}
-                  onClick={() => fileInputRef.current?.click()}
-                  size="small"
-                >
-                  {previewUrl ? 'Promeni sliku' : 'Dodaj sliku'}
-                </Button>
-                {previewUrl && (
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                    onClick={handleRemoveImage}
-                    size="small"
-                  >
-                    Ukloni sliku
-                  </Button>
-                )}
-              </Box>
+            <Box
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => !previewUrl && fileInputRef.current?.click()}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                p: 2,
+                border: '2px dashed',
+                borderColor: isDragging ? 'primary.main' : previewUrl ? 'grey.300' : 'grey.400',
+                borderRadius: 2,
+                bgcolor: isDragging ? 'primary.50' : 'grey.50',
+                cursor: previewUrl ? 'default' : 'pointer',
+                transition: 'all 0.2s ease',
+                '&:hover': !previewUrl ? {
+                  borderColor: 'primary.main',
+                  bgcolor: 'primary.50',
+                } : {},
+              }}
+            >
+              {previewUrl ? (
+                <>
+                  <Avatar
+                    src={previewUrl}
+                    variant="rounded"
+                    sx={{
+                      width: 100,
+                      height: 100,
+                      bgcolor: 'grey.200',
+                    }}
+                  />
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<CloudUploadIcon />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        fileInputRef.current?.click();
+                      }}
+                      size="small"
+                    >
+                      Promeni sliku
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      startIcon={<DeleteIcon />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveImage();
+                      }}
+                      size="small"
+                    >
+                      Ukloni sliku
+                    </Button>
+                  </Box>
+                </>
+              ) : (
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  width: '100%',
+                  py: 2,
+                }}>
+                  <CloudUploadIcon sx={{ fontSize: 48, color: isDragging ? 'primary.main' : 'grey.400', mb: 1 }} />
+                  <Typography variant="body2" color={isDragging ? 'primary.main' : 'text.secondary'} textAlign="center">
+                    {isDragging ? 'Pustite sliku ovde' : 'Prevucite sliku ovde ili kliknite za odabir'}
+                  </Typography>
+                  <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5 }}>
+                    JPG, PNG, WebP
+                  </Typography>
+                </Box>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+              />
             </Box>
           </Box>
 
