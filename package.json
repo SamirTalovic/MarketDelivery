@@ -17,6 +17,7 @@
     "@mui/material": "^7.3.6",
     "@tanstack/react-virtual": "^3.13.17",
     "axios": "^1.13.2",
+    "fuse.js": "^7.1.0",
     "leaflet": "^1.9.4",
     "leaflet-routing-machine": "^3.2.12",
     "react": "^19.2.0",

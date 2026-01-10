@@ -9,6 +9,7 @@ import {
   Button,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import Fuse from 'fuse.js';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import CategoryCard from '../components/CategoryCard';
@@ -25,14 +26,43 @@ const Index: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 300);
 
-  // Filter products based on category and debounced search
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      const matchesCategory = selectedCategory === null || product.categoryId === selectedCategory;
-      const matchesSearch = product.name.toLowerCase().includes(debouncedSearch.toLowerCase());
-      return matchesCategory && matchesSearch;
+  // Create Fuse instance for fuzzy search
+  const fuse = useMemo(() => {
+    return new Fuse(products, {
+      keys: ['name'],
+      threshold: 0.4, // Lower = stricter, Higher = more fuzzy (0.4 is good balance)
+      distance: 100,
+      includeScore: true,
+      minMatchCharLength: 2,
+      ignoreLocation: true, // Search anywhere in string
     });
-  }, [products, selectedCategory, debouncedSearch]);
+  }, [products]);
+
+  // Filter products based on category and fuzzy search
+  const filteredProducts = useMemo(() => {
+    let categoryFiltered = selectedCategory === null 
+      ? products 
+      : products.filter((product) => product.categoryId === selectedCategory);
+
+    if (!debouncedSearch.trim()) {
+      return categoryFiltered;
+    }
+
+    // Use fuzzy search
+    const fuseResults = fuse.search(debouncedSearch);
+    
+    // Get fuzzy matched products (minimum 50 or all matches)
+    const fuzzyMatched = fuseResults
+      .slice(0, Math.max(50, fuseResults.length))
+      .map(result => result.item);
+
+    // Filter by category if selected
+    if (selectedCategory !== null) {
+      return fuzzyMatched.filter(p => p.categoryId === selectedCategory);
+    }
+
+    return fuzzyMatched;
+  }, [products, selectedCategory, debouncedSearch, fuse]);
 
   // Use paginated products for progressive loading
   const { paginatedProducts, hasMore, loadMore, resetPagination } = usePaginatedProducts(

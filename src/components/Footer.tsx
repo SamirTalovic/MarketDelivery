@@ -36,7 +36,7 @@ const Footer: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <LocalPhoneIcon fontSize="small" sx={{ color: 'grey.400' }} />
               <Typography variant="body2" sx={{ color: 'grey.400' }}>
-                +381 69 691215
+                +381 69 691 415
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
