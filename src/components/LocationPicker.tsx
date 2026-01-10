@@ -104,7 +104,6 @@ const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange, error,
     const lat = parseFloat(s.lat);
     const lng = parseFloat(s.lon);
 
-    const dist = calculateDistance(lat, lng);
     
 
     const selected: CustomerLocation = { lat, lng, address: s.display_name };
