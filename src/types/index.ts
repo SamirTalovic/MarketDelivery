@@ -51,8 +51,10 @@ export interface Order {
 }
 
 export interface DeliverySettings {
-  pricePerKm: number;
-  minDeliveryFee: number;
-  maxDeliveryFee: number;
   freeDeliveryThreshold: number;
+  underThresholdFee: number;
+  distanceThresholdKm: number;
+  overDistanceFee: number;
+  orderStartHour: number;
+  orderEndHour: number;
 }

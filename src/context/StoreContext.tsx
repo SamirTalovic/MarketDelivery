@@ -7,10 +7,12 @@ import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 const STORE_LOCATION = { lat: 43.276415, lng: 20.011664 };
 
 const defaultDeliverySettings: DeliverySettings = {
-  pricePerKm: 50,
-  minDeliveryFee: 100,
-  maxDeliveryFee: 500,
   freeDeliveryThreshold: 2000,
+  underThresholdFee: 100,
+  distanceThresholdKm: 3.5,
+  overDistanceFee: 500,
+  orderStartHour: 9,
+  orderEndHour: 20,
 };
 interface CartNotification {
   productName: string;
@@ -42,6 +44,9 @@ interface StoreContextType {
   getCartTotal: () => number;
   getCartItemsCount: () => number;
   calculateDeliveryFee: (location: CustomerLocation) => number;
+   getDistanceFromStore: (location: CustomerLocation) => number;
+  isOrderingAllowed: () => boolean;
+  getOrderingHoursMessage: () => string;
   placeOrder: (customer: CustomerInfo, deliveryFee: number) => Promise<void>;
   refreshOrders: () => Promise<void>;
   deleteOrder: (orderId: number) => Promise<void>;
@@ -104,7 +109,12 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const [deliverySettings, setDeliverySettings] = useState<DeliverySettings>(() => {
     const stored = localStorage.getItem(STORAGE_KEYS.DELIVERY_SETTINGS);
-    return stored ? JSON.parse(stored) : defaultDeliverySettings;
+   if (stored) {
+      const parsed = JSON.parse(stored);
+      // Merge with defaults to handle missing fields from old saved data
+      return { ...defaultDeliverySettings, ...parsed };
+    }
+    return defaultDeliverySettings;
   });
 const clearCartNotification = () => setCartNotification(null);
   // 🔹 Fetch categories
@@ -213,14 +223,40 @@ connection.onreconnected(connectionId => {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
   };
+ const getDistanceFromStore = (location: CustomerLocation): number => {
+    return calculateDistance(location.lat, location.lng);
+  };
 
   const calculateDeliveryFee = (location: CustomerLocation): number => {
     const cartTotal = getCartTotal();
-    if (deliverySettings.freeDeliveryThreshold > 0 && cartTotal >= deliverySettings.freeDeliveryThreshold) return 0;
-    const distance = calculateDistance(location.lat, location.lng);
-    const fee = Math.round(distance * deliverySettings.pricePerKm);
-    return Math.min(Math.max(fee, deliverySettings.minDeliveryFee), deliverySettings.maxDeliveryFee);
+      const distance = calculateDistance(location.lat, location.lng);
+    
+    // Free delivery if cart total exceeds threshold
+    if (cartTotal >= deliverySettings.freeDeliveryThreshold) {
+      return 0;
+    }
+    
+    // If distance is over threshold, charge over distance fee
+    if (distance > deliverySettings.distanceThresholdKm) {
+      return deliverySettings.overDistanceFee;
+    }
+    
+    // Under threshold fee for orders under the free delivery threshold
+    return deliverySettings.underThresholdFee;
   };
+
+  // Check if ordering is currently allowed based on time
+  const isOrderingAllowed = (): boolean => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    return currentHour >= deliverySettings.orderStartHour && currentHour < deliverySettings.orderEndHour;
+  };
+
+  // Get message about ordering hours
+  const getOrderingHoursMessage = (): string => {
+    return `Porudžbine su moguće od ${deliverySettings.orderStartHour}:00 do ${deliverySettings.orderEndHour}:00`;
+  };
+  
 
   // 🔹 Category functions
   const addCategory = async (category: Omit<Category, 'categoryId'>) => {
@@ -321,7 +357,10 @@ connection.onreconnected(connectionId => {
       addCategory, updateCategory, deleteCategory, refreshCategories,
       addProduct, updateProduct, deleteProduct, refreshProducts,
       addToCart, updateCartQuantity, removeFromCart, clearCart,
-      getCartTotal, getCartItemsCount, calculateDeliveryFee,
+      getCartTotal, getCartItemsCount,  calculateDeliveryFee,
+      getDistanceFromStore,
+      isOrderingAllowed,
+      getOrderingHoursMessage,
       placeOrder, refreshOrders, deleteOrder, updateDeliverySettings,
     }}>
       {children}

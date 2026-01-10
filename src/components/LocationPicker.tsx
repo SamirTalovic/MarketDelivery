@@ -105,11 +105,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange, error,
     const lng = parseFloat(s.lon);
 
     const dist = calculateDistance(lat, lng);
-    if (dist > MAX_DISTANCE_KM) {
-      setWarning(`❌ Dostava nije moguća (${dist.toFixed(2)} km). Maksimalno 3.5 km.`);
-      setSuggestions([]);
-      return;
-    }
+    
 
     const selected: CustomerLocation = { lat, lng, address: s.display_name };
     onChange(selected);

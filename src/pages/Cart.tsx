@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -26,13 +26,20 @@ import LocationPicker from '../components/LocationPicker';
 import { useStore } from '../context/StoreContext';
 import type { CustomerInfo, CustomerLocation } from '../types';
 
-const MIN_ORDER_WITHOUT_CIGARETTES = 2000;
-const CIGARETTE_CATEGORY_ID = 2;
-
 const Cart: React.FC = () => {
   const navigate = useNavigate();
-  const { cart, updateCartQuantity, removeFromCart, getCartTotal, placeOrder, calculateDeliveryFee, deliverySettings } = useStore();
-
+  const { 
+    cart, 
+    updateCartQuantity, 
+    removeFromCart, 
+    getCartTotal, 
+    placeOrder, 
+    calculateDeliveryFee, 
+    getDistanceFromStore,
+    isOrderingAllowed,
+    getOrderingHoursMessage,
+    deliverySettings 
+  } = useStore();
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     firstName: '',
     lastName: '',
@@ -40,28 +47,11 @@ const Cart: React.FC = () => {
     location: undefined,
     note: '',
   });
-
-  const [errors, setErrors] = useState<{
-    firstName?: string;
-    lastName?: string;
-    phone?: string;
-    location?: string;
-    minCart?: string;
-  }>({});
-
+  const [errors, setErrors] = useState<{ firstName?: string; lastName?: string; phone?: string; location?: string }>({});
   const [showSuccess, setShowSuccess] = useState(false);
+  const [orderingBlocked, setOrderingBlocked] = useState(!isOrderingAllowed());
 
-  // Ukupna cena artikala **bez cigareta**
-  const cartTotalWithoutCigarettes = useMemo(() => {
-    return cart
-      .filter(item => item.product.categoryId !== CIGARETTE_CATEGORY_ID)
-      .reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  }, [cart]);
-
-  // Ukupna cena svih artikala
-  const cartTotal = getCartTotal();
-
-  // Delivery fee
+  // Calculate delivery fee and distance based on location
   const deliveryFee = useMemo(() => {
     if (customerInfo.location) {
       return calculateDeliveryFee(customerInfo.location);
@@ -69,25 +59,30 @@ const Cart: React.FC = () => {
     return 0;
   }, [customerInfo.location, calculateDeliveryFee]);
 
+  const distance = useMemo(() => {
+    if (customerInfo.location) {
+      return getDistanceFromStore(customerInfo.location);
+    }
+    return 0;
+  }, [customerInfo.location, getDistanceFromStore]);
+
+  const cartTotal = getCartTotal();
   const totalWithDelivery = cartTotal + deliveryFee;
 
+  // Check ordering hours every minute
+  useEffect(() => {
+    const checkOrdering = () => setOrderingBlocked(!isOrderingAllowed());
+    checkOrdering();
+    const interval = setInterval(checkOrdering, 60000);
+    return () => clearInterval(interval);
+  }, [isOrderingAllowed]);
+
   const validate = () => {
-    const newErrors: typeof errors = {};
+    const newErrors: { firstName?: string; lastName?: string; phone?: string; location?: string } = {};
     if (!customerInfo.firstName.trim()) newErrors.firstName = 'Unesite ime';
     if (!customerInfo.lastName.trim()) newErrors.lastName = 'Unesite prezime';
-    
-    // Broj telefona mora biti 9 ili 10 cifara
-    if (!/^\d{9,10}$/.test(customerInfo.phone)) {
-      newErrors.phone = 'Broj telefona mora imati 9 ili 10 cifara';
-    }
-
+    if (!customerInfo.phone.trim()) newErrors.phone = 'Unesite broj telefona';
     if (!customerInfo.location) newErrors.location = 'Izaberite lokaciju na mapi';
-
-    // Minimalna cena bez cigareta
-    if (cartTotalWithoutCigarettes < MIN_ORDER_WITHOUT_CIGARETTES) {
-      newErrors.minCart = `Minimalna porudžbina je ${MIN_ORDER_WITHOUT_CIGARETTES} RSD (bez cigareta)`;
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -100,6 +95,10 @@ const Cart: React.FC = () => {
   };
 
   const handleOrder = () => {
+    if (!isOrderingAllowed()) {
+      setOrderingBlocked(true);
+      return;
+    }
     if (validate() && cart.length > 0) {
       placeOrder(customerInfo, deliveryFee);
       setShowSuccess(true);
@@ -149,7 +148,6 @@ const Cart: React.FC = () => {
         </Typography>
 
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={4}>
-          {/* Lista proizvoda */}
           <Box sx={{ flex: { xs: 1, md: 7 } }}>
             <Card>
               <CardContent>
@@ -226,7 +224,6 @@ const Cart: React.FC = () => {
             </Card>
           </Box>
 
-          {/* Podaci za dostavu */}
           <Box sx={{ flex: { xs: 1, md: 5 } }}>
             <Card>
               <CardContent>
@@ -263,7 +260,8 @@ const Cart: React.FC = () => {
                     helperText={errors.phone}
                     required
                   />
-
+                  
+                  {/* Location Picker */}
                   <LocationPicker
                     value={customerInfo.location}
                     onChange={handleLocationChange}
@@ -281,12 +279,6 @@ const Cart: React.FC = () => {
                   />
                 </Stack>
 
-                {errors.minCart && (
-                  <Alert severity="error" sx={{ my: 2 }}>
-                    {errors.minCart}
-                  </Alert>
-                )}
-
                 <Divider sx={{ my: 3 }} />
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
@@ -297,7 +289,8 @@ const Cart: React.FC = () => {
                   <Typography>Cena proizvoda:</Typography>
                   <Typography fontWeight={600}>{cartTotal} RSD</Typography>
                 </Box>
-
+                
+                {/* Delivery fee section */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <LocalShippingIcon fontSize="small" color="action" />
@@ -314,9 +307,22 @@ const Cart: React.FC = () => {
                   )}
                 </Box>
 
-                {deliverySettings.freeDeliveryThreshold > 0 && cartTotal < deliverySettings.freeDeliveryThreshold && (
-                  <Alert severity="info" sx={{ mb: 2, py: 0.5 }}>
-                    Još {deliverySettings.freeDeliveryThreshold - cartTotal} RSD do besplatne dostave!
+                {/* Distance info */}
+                {customerInfo.location && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography color="text.secondary" variant="body2">Udaljenost:</Typography>
+                    <Typography variant="body2" color={distance > deliverySettings.distanceThresholdKm ? 'warning.main' : 'text.secondary'}>
+                      {distance.toFixed(1)} km
+                    </Typography>
+                  </Box>
+                )}
+                
+                {/* Free delivery hint */}
+               
+                {/* Ordering hours warning */}
+                {orderingBlocked && (
+                  <Alert severity="warning" sx={{ mb: 2, py: 0.5 }}>
+                    {getOrderingHoursMessage()}
                   </Alert>
                 )}
 
@@ -334,9 +340,9 @@ const Cart: React.FC = () => {
                   variant="contained"
                   size="large"
                   onClick={handleOrder}
-                  disabled={cart.length === 0}
+                  disabled={cart.length === 0 || orderingBlocked}
                 >
-                  Potvrdi porudžbinu
+                  {orderingBlocked ? 'Van radnog vremena' : 'Potvrdi porudžbinu'}
                 </Button>
               </CardContent>
             </Card>
