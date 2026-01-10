@@ -33,8 +33,8 @@ interface StoreContextType {
   updateCategory: (categoryId: number, category: Partial<Category>) => Promise<void>;
   deleteCategory: (categoryId: number) => Promise<void>;
   refreshCategories: () => Promise<void>;
-  addProduct: (product: Omit<Product, 'articleId'>) => Promise<void>;
-  updateProduct: (articleId: number, product: Partial<Product>) => Promise<void>;
+  addProduct: (product: Omit<Product, 'articleId'> & { picture?: File }) => Promise<void>;
+  updateProduct: (articleId: number, product: Partial<Product> & { picture?: File }) => Promise<void>;
   deleteProduct: (articleId: number) => Promise<void>;
   refreshProducts: () => Promise<void>;
   addToCart: (product: Product, quantity: number) => void;
@@ -90,6 +90,7 @@ const mapOrderDtoToOrder = (dto: OrderDto): Order => {
     items,
     total,
     deliveryFee: 0,
+    info:dto.info,
   };
 };
 
@@ -143,6 +144,8 @@ const clearCartNotification = () => setCartNotification(null);
         available: a.status,
         addition: a.addition,
         unit: a.unit,
+        salePrice: a.salePrice,
+        pictureUrl: a.pictureUrl,
       })));
     } catch (error) {
       console.error('Failed to fetch products:', error);
@@ -277,7 +280,7 @@ connection.onreconnected(connectionId => {
   };
 
   // 🔹 Product functions
-  const addProduct = async (product: Omit<Product, 'articleId'>) => {
+  const addProduct = async (product: Omit<Product, 'articleId'> & { picture?: File }) => {
     try {
       await articleApi.create({
         name: product.name,
@@ -286,11 +289,13 @@ connection.onreconnected(connectionId => {
         price: product.price,
         unit: product.unit || 'kom',
         status: product.available,
+        salePrice: product.salePrice,
+        picture: product.picture,
       });
       await refreshProducts();
     } catch (error) { console.error('Failed to create product:', error); }
   };
-  const updateProduct = async (articleId: number, updates: Partial<Product>) => {
+ const updateProduct = async (articleId: number, updates: Partial<Product> & { picture?: File }) => {
     try {
       const existing = products.find(p => p.articleId === articleId);
       if (!existing) return;
@@ -301,6 +306,8 @@ connection.onreconnected(connectionId => {
         price: updates.price ?? existing.price,
         unit: updates.unit ?? existing.unit ?? 'kom',
         status: updates.available ?? existing.available,
+        salePrice: updates.salePrice,
+        picture: updates.picture,
       });
       await refreshProducts();
     } catch (error) { console.error('Failed to update product:', error); }
@@ -338,6 +345,7 @@ connection.onreconnected(connectionId => {
         verified: false,
         lat: customer.location?.lat || 0,
         lng: customer.location?.lng || 0,
+        info: customer.note || '',
         articles: cart.map(i => ({ articleId: i.product.articleId, quantity: i.quantity })),
       });
       clearCart();

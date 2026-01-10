@@ -18,11 +18,13 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Avatar,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import type { Category, Product } from '../../types';
 
 interface ProductsTabProps {
@@ -150,6 +152,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
         <Table size="small">
           <TableHead>
             <TableRow sx={{ bgcolor: 'grey.50' }}>
+              <TableCell width={60}>Slika</TableCell>
               <TableCell>Naziv</TableCell>
               <TableCell>Kategorija</TableCell>
               <TableCell>Cena</TableCell>
@@ -159,36 +162,71 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {paginatedProducts.map((product) => (
-              <TableRow key={product.articleId} hover>
-                <TableCell>
-                  <Typography fontWeight={600} sx={{ fontSize: '0.875rem' }}>{product.name}</Typography>
-                  {product.addition && (
-                    <Typography variant="caption" color="text.secondary">
-                      {product.addition}
-                    </Typography>
-                  )}
-                </TableCell>
-                <TableCell>{getCategoryName(product.categoryId)}</TableCell>
-                <TableCell>{product.price} RSD</TableCell>
-                <TableCell>{product.unit || 'kom'}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={product.available ? 'Dostupno' : 'Nedostupno'}
-                    color={product.available ? 'success' : 'error'}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell align="right">
-                  <IconButton size="small" onClick={() => onEditProduct(product)}>
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton size="small" color="error" onClick={() => onDeleteProduct(product.articleId)}>
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
+            {paginatedProducts.map((product) => {
+              const hasDiscount = product.salePrice && product.salePrice < product.price;
+              return (
+                <TableRow key={product.articleId} hover>
+                  <TableCell>
+                    <Avatar
+                      src={product.pictureUrl}
+                      variant="rounded"
+                      sx={{ width: 40, height: 40, bgcolor: 'grey.200' }}
+                    >
+                      🛒
+                    </Avatar>
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {hasDiscount && (
+                        <LocalOfferIcon color="error" fontSize="small" />
+                      )}
+                      <Box>
+                        <Typography fontWeight={600} sx={{ fontSize: '0.875rem' }}>{product.name}</Typography>
+                        {product.addition && (
+                          <Typography variant="caption" color="text.secondary">
+                            {product.addition}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  </TableCell>
+                  <TableCell>{getCategoryName(product.categoryId)}</TableCell>
+                  <TableCell>
+                    {hasDiscount ? (
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{ textDecoration: 'line-through', color: 'text.disabled' }}
+                        >
+                          {product.price} RSD
+                        </Typography>
+                        <Typography color="error" fontWeight={600}>
+                          {product.salePrice} RSD
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Typography>{product.price} RSD</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell>{product.unit || 'kom'}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={product.available ? 'Dostupno' : 'Nedostupno'}
+                      color={product.available ? 'success' : 'error'}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <IconButton size="small" onClick={() => onEditProduct(product)}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" color="error" onClick={() => onDeleteProduct(product.articleId)}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>

@@ -20,7 +20,7 @@ import ProductsTab from '../components/admin/ProductsTab';
 import OrdersTab from '../components/admin/OrdersTab';
 import DeliverySettingsTab from '../components/admin/DeliverySettingsTab';
 import CategoryDialog from '../components/admin/CategoryDialog';
-import ProductDialog from '../components/admin/ProductDialog';
+import ProductDialog, { type ProductFormData } from '../components/admin/ProductDialog';
 import OrderDetailsDialog from '../components/admin/OrderDetailsDialog';
 
 interface TabPanelProps {
@@ -70,7 +70,8 @@ const AdminPanel: React.FC = () => {
 
   // Delivery settings dialog
   const [deliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
-console.log(deliveryDialogOpen)
+console.log(deliveryDialogOpen);
+
   // Category handlers
   const handleOpenCategoryDialog = (category?: Category) => {
     setEditingCategory(category || null);
@@ -91,18 +92,29 @@ console.log(deliveryDialogOpen)
     setProductDialogOpen(true);
   };
 
-  const handleSaveProduct = (data: {
-    name: string;
-    price: number;
-    categoryId: number;
-    available: boolean;
-    addition: string;
-    unit: string;
-  }) => {
+  const handleSaveProduct = (data: ProductFormData) => {
     if (editingProduct) {
-      updateProduct(editingProduct.articleId, data);
+      updateProduct(editingProduct.articleId, {
+        name: data.name,
+        price: data.price,
+        salePrice: data.salePrice,
+        categoryId: data.categoryId,
+        available: data.available,
+        addition: data.addition,
+        unit: data.unit,
+        picture: data.picture,
+      });
     } else {
-      addProduct(data);
+      addProduct({
+        name: data.name,
+        price: data.price,
+        salePrice: data.salePrice,
+        categoryId: data.categoryId,
+        available: data.available,
+        addition: data.addition,
+        unit: data.unit,
+        picture: data.picture,
+      });
     }
   };
 

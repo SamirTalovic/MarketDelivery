@@ -26,6 +26,8 @@ export interface ArticleDto {
   price: number;
   unit: string;
   status: boolean;
+  salePrice?: number;
+  pictureUrl?: string;
 }
 
 export interface CreateArticleDto {
@@ -35,6 +37,8 @@ export interface CreateArticleDto {
   price: number;
   unit: string;
   status: boolean;
+  salePrice?: number;
+  picture?: File;
 }
 
 export interface UpdateArticleDto {
@@ -44,6 +48,8 @@ export interface UpdateArticleDto {
   price: number;
   unit: string;
   status: boolean;
+  salePrice?: number;
+  picture?: File;
 }
 
 // Order DTOs
@@ -61,6 +67,7 @@ export interface CreateOrderDto {
   lat: number;
   lng: number;
   articles: ArticleOrderDto[];
+  info?: string;
 }
 
 export interface UpdateOrderDto {
@@ -83,12 +90,15 @@ export interface OrderDto {
   verified: boolean;
   lat: number;
   lng: number;
+  info?: string;
+
   createdAt: string;
   articleOrders: {
     articleId: number;
     quantity: number;
     totalPrice: number;
     article: ArticleDto;
+
   }[];
 }
 
@@ -142,23 +152,51 @@ export const articleApi = {
     return response.json();
   },
   create: async (data: CreateArticleDto): Promise<string> => {
-    const response = await fetch(`${API_BASE_URL}/Article`, {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    formData.append('addition', data.addition);
+    formData.append('categoryId', data.categoryId.toString());
+    formData.append('price', data.price.toString());
+    formData.append('unit', data.unit);
+    formData.append('status', data.status.toString());
+    if (data.salePrice !== undefined && data.salePrice !== null) {
+      formData.append('salePrice', data.salePrice.toString());
+    }
+    if (data.picture) {
+      formData.append('picture', data.picture);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/article`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: formData,
     });
     if (!response.ok) throw new Error('Failed to create article');
     return response.text();
   },
+
   update: async (id: number, data: UpdateArticleDto): Promise<string> => {
-    const response = await fetch(`${API_BASE_URL}/Article/${id}`, {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    formData.append('addition', data.addition);
+    formData.append('categoryId', data.categoryId.toString());
+    formData.append('price', data.price.toString());
+    formData.append('unit', data.unit);
+    formData.append('status', data.status.toString());
+    if (data.salePrice !== undefined && data.salePrice !== null) {
+      formData.append('salePrice', data.salePrice.toString());
+    }
+    if (data.picture) {
+      formData.append('picture', data.picture);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/article/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: formData,
     });
     if (!response.ok) throw new Error('Failed to update article');
     return response.text();
   },
+
   delete: async (id: number): Promise<string> => {
     const response = await fetch(`${API_BASE_URL}/Article/${id}`, { method: 'DELETE' });
     if (!response.ok) throw new Error('Failed to delete article');

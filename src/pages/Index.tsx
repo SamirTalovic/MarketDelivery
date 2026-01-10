@@ -37,12 +37,25 @@ const Index: React.FC = () => {
       ignoreLocation: true, // Search anywhere in string
     });
   }, [products]);
+  // Special category ID for "Akcije" (sales)
+  const SALES_CATEGORY_ID = -1;
+
+  // Get products on sale
+  const productsOnSale = useMemo(() => {
+    return products.filter(p => p.salePrice && p.salePrice < p.price);
+  }, [products]);
 
   // Filter products based on category and fuzzy search
   const filteredProducts = useMemo(() => {
-    let categoryFiltered = selectedCategory === null 
-      ? products 
-      : products.filter((product) => product.categoryId === selectedCategory);
+    let categoryFiltered: typeof products;
+    
+    if (selectedCategory === null) {
+      categoryFiltered = products;
+    } else if (selectedCategory === SALES_CATEGORY_ID) {
+      categoryFiltered = productsOnSale;
+    } else {
+      categoryFiltered = products.filter((product) => product.categoryId === selectedCategory);
+    }
 
     if (!debouncedSearch.trim()) {
       return categoryFiltered;
@@ -57,12 +70,14 @@ const Index: React.FC = () => {
       .map(result => result.item);
 
     // Filter by category if selected
-    if (selectedCategory !== null) {
+       if (selectedCategory === SALES_CATEGORY_ID) {
+      return fuzzyMatched.filter(p => p.salePrice && p.salePrice < p.price);
+    } else if (selectedCategory !== null) {
       return fuzzyMatched.filter(p => p.categoryId === selectedCategory);
     }
 
     return fuzzyMatched;
-  }, [products, selectedCategory, debouncedSearch, fuse]);
+  }, [products, selectedCategory, debouncedSearch, fuse,productsOnSale]);
 
   // Use paginated products for progressive loading
   const { paginatedProducts, hasMore, loadMore, resetPagination } = usePaginatedProducts(
@@ -158,6 +173,12 @@ const Index: React.FC = () => {
             '&::-webkit-scrollbar-thumb': { bgcolor: 'grey.300', borderRadius: 3 },
           }}
         >
+            <CategoryCard
+            category={{ categoryId: SALES_CATEGORY_ID, name: 'Akcije', emoji: '🔥' }}
+            isSelected={selectedCategory === SALES_CATEGORY_ID}
+            onClick={() => setSelectedCategory(SALES_CATEGORY_ID)}
+            productCount={productsOnSale.length}
+          />
           <CategoryCard
             category={{ categoryId: 0, name: 'Sve', emoji: '🏪' }}
             isSelected={selectedCategory === null}
@@ -188,7 +209,7 @@ const Index: React.FC = () => {
         <VirtualizedProductGrid 
           products={paginatedProducts} 
           isLoading={loadingProducts}
-          columns={4}
+          columns={2}
         />
 
         {hasMore && (

@@ -148,6 +148,7 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
                 <TableCell>Kupac</TableCell>
                 <TableCell>Telefon</TableCell>
                 <TableCell>Lokacija</TableCell>
+                <TableCell>Napomena</TableCell>
                 <TableCell>Artikli</TableCell>
                 <TableCell>Ukupno</TableCell>
                 <TableCell>Status</TableCell>
@@ -187,6 +188,13 @@ const OrdersTab: React.FC<OrdersTabProps> = ({
                     {order.location ? (
                       <Typography variant="body2" sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {order.location}
+                      </Typography>
+                    ) : '-'}
+                  </TableCell>
+                  <TableCell>
+                    {order.info ? (
+                      <Typography variant="body2" sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {order.info}
                       </Typography>
                     ) : '-'}
                   </TableCell>

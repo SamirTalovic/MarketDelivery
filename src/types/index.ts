@@ -12,6 +12,8 @@ export interface Product {
   available: boolean;
   addition?: string;
   unit?: string;
+  salePrice?: number;
+  pictureUrl?: string;
 }
 
 export interface CartItem {
@@ -48,6 +50,7 @@ export interface Order {
   items: CartItem[];
   total: number;
   deliveryFee: number;
+  info?: string
 }
 
 export interface DeliverySettings {

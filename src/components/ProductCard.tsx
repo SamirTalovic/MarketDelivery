@@ -14,6 +14,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import type { Product } from '../types';
 import { useStore } from '../context/StoreContext';
 
@@ -34,17 +35,44 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     }
   };
 
+  // Calculate discount percentage
+  const hasDiscount = product.salePrice && product.salePrice < product.price;
+  const discountPercent = hasDiscount
+    ? Math.round(((product.price - product.salePrice!) / product.price) * 100)
+    : 0;
+  const displayPrice = hasDiscount ? product.salePrice! : product.price;
+
   return (
     <Card
       sx={{
-        height: '100%',
-        minHeight: 280,
+        height: 'auto',
+        minHeight: { xs: 140, sm: 160 },
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
         opacity: product.available ? 1 : 0.6,
         position: 'relative',
+        overflow: 'hidden',
+        mb: { xs: 0, sm: 0 },
       }}
     >
+      {/* Discount badge */}
+      {hasDiscount && (
+        <Chip
+          icon={<LocalOfferIcon sx={{ fontSize: '0.9rem !important' }} />}
+          label={`-${discountPercent}%`}
+          color="error"
+          size="small"
+          sx={{
+            position: 'absolute',
+            top: 10,
+            left: 8,
+            zIndex: 2,
+            fontWeight: 700,
+            fontSize: { xs: '0.7rem', sm: '0.75rem' },
+          }}
+        />
+      )}
+
       {!product.available && (
         <Chip
           label="Nije dostupno"
@@ -59,18 +87,41 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           }}
         />
       )}
+
+      {/* Product Image - Left Side */}
       <Box
         sx={{
-          height: { xs: 100, sm: 140 },
-          background: 'linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%)',
+          width: { xs: 100, sm: 140 },
+          minWidth: { xs: 100, sm: 140 },
+          height: { xs: 120, sm: 160 },
+          background: product.pictureUrl 
+            ? 'transparent' 
+            : 'linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: { xs: '2rem', sm: '3rem' },
+          borderRadius: '8px 0 0 8px',
+          overflow: 'hidden',
+          flexShrink: 0,
         }}
       >
-        🛒
+        {product.pictureUrl ? (
+          <Box
+            component="img"
+            src={product.pictureUrl}
+            alt={product.name}
+            sx={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+        ) : (
+          <Typography sx={{ fontSize: { xs: '2rem', sm: '3rem' } }}>🛒</Typography>
+        )}
       </Box>
+
+      {/* Product Info - Right Side */}
       <CardContent 
         sx={{ 
           flexGrow: 1, 
@@ -78,6 +129,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           flexDirection: 'column',
           p: { xs: 1.5, sm: 2 },
           '&:last-child': { pb: { xs: 1.5, sm: 2 } },
+          minWidth: 0,
         }}
       >
         <Typography 
@@ -86,6 +138,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             fontSize: { xs: '0.85rem', sm: '1rem' }, 
             mb: 0.5,
             lineHeight: 1.2,
+            fontWeight: 600,
           }}
         >
           {product.name}
@@ -94,28 +147,71 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ mb: 1, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
+            sx={{ 
+              mb: 1, 
+              fontSize: { xs: '0.65rem', sm: '0.75rem' },
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+            }}
           >
             {product.addition}
           </Typography>
         )}
+        
         <Box sx={{ mt: 'auto' }}>
-          <Typography
-            variant="h5"
-            color="primary"
-            fontWeight={700}
-            sx={{ mb: 1, fontSize: { xs: '1rem', sm: '1.25rem' } }}
-          >
-            {product.price} RSD
-            <Typography
-              component="span"
-              variant="body2"
-              color="text.secondary"
-              sx={{ ml: 0.5, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
-            >
-              / {product.unit || 'kom'}
-            </Typography>
-          </Typography>
+          {/* Price Section */}
+          <Box sx={{ mb: 1 }}>
+            {hasDiscount ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    textDecoration: 'line-through',
+                    color: 'text.disabled',
+                    fontSize: { xs: '0.75rem', sm: '0.85rem' },
+                  }}
+                >
+                  {product.price} RSD
+                </Typography>
+                <Typography
+                  variant="h5"
+                  color="error"
+                  fontWeight={700}
+                  sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+                >
+                  {displayPrice} RSD
+                  <Typography
+                    component="span"
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ ml: 0.5, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
+                  >
+                    / {product.unit || 'kom'}
+                  </Typography>
+                </Typography>
+              </Box>
+            ) : (
+              <Typography
+                variant="h5"
+                color="primary"
+                fontWeight={700}
+                sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+              >
+                {displayPrice} RSD
+                <Typography
+                  component="span"
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ ml: 0.5, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
+                >
+                  / {product.unit || 'kom'}
+                </Typography>
+              </Typography>
+            )}
+          </Box>
 
           {product.available && (
             <Box 
@@ -164,7 +260,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               </Box>
               <Button
                 variant="contained"
-                color="secondary"
+                color={hasDiscount ? 'error' : 'secondary'}
                 size={isMobile ? 'medium' : 'small'}
                 startIcon={<AddShoppingCartIcon />}
                 onClick={handleAdd}
