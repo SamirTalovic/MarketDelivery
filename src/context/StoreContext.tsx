@@ -50,6 +50,7 @@ interface StoreContextType {
   placeOrder: (customer: CustomerInfo, deliveryFee: number) => Promise<void>;
   refreshOrders: () => Promise<void>;
   deleteOrder: (orderId: number) => Promise<void>;
+  updateOrderStatus: (orderId: number, status: OrderStatus) => Promise<void>;
   updateDeliverySettings: (settings: DeliverySettings) => void;
 }
 
@@ -353,6 +354,31 @@ connection.onreconnected(connectionId => {
     } catch (error) { console.error('Failed to place order:', error); }
   };
   const deleteOrder = async (orderId: number) => { try { await orderApi.delete(orderId); await refreshOrders(); } catch (error) { console.error('Failed to delete order:', error); } };
+const updateOrderStatus = async (orderId: number, status: OrderStatus) => {
+  const order = orders.find(o => o.orderId === orderId);
+  if (!order) return;
+
+  await orderApi.update(orderId, {
+    customerName: order.customerName,
+    phone: order.phone,
+    location: order.location,
+    status,
+    verified: order.verified,
+    lat: order.lat,
+    lng: order.lng,
+    articles: order.items.map(i => ({
+      articleId: i.product.articleId,
+      quantity: i.quantity,
+    })),
+  });
+
+  setOrders(prev =>
+    prev.map(o =>
+      o.orderId === orderId ? { ...o, status } : o
+    )
+  );
+};
+
 
   const updateDeliverySettings = (settings: DeliverySettings) => setDeliverySettings(settings);
 
@@ -369,7 +395,7 @@ connection.onreconnected(connectionId => {
       getDistanceFromStore,
       isOrderingAllowed,
       getOrderingHoursMessage,
-      placeOrder, refreshOrders, deleteOrder, updateDeliverySettings,
+      placeOrder, refreshOrders, deleteOrder,updateOrderStatus, updateDeliverySettings,
     }}>
       {children}
     </StoreContext.Provider>

@@ -48,6 +48,7 @@ const AdminPanel: React.FC = () => {
     updateProduct,
     deleteProduct,
     updateDeliverySettings,
+    updateOrderStatus
   } = useStore();
 
   const [tabValue, setTabValue] = useState(0);
@@ -130,11 +131,21 @@ console.log(deliveryDialogOpen);
     window.location.href = `tel:${phone}`;
   };
 
-  const handleStatusChange = (orderId: number, status: OrderStatus) => {
-    if (selectedOrder?.orderId === orderId) {
-      setSelectedOrder({ ...selectedOrder, status });
-    }
-  };
+ const handleStatusChange = async (
+  orderId: number,
+  status: OrderStatus
+) => {
+  // 1. pozovi backend + store
+  await updateOrderStatus(orderId, status);
+
+  // 2. osveži otvoreni dialog (UI)
+  setSelectedOrder(prev =>
+    prev?.orderId === orderId
+      ? { ...prev, status }
+      : prev
+  );
+};
+
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'grey.100' }}>

@@ -10,7 +10,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   Select,
@@ -26,7 +25,6 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
-import InventoryIcon from '@mui/icons-material/Inventory';
 import type { Order, OrderStatus } from '../../types';
 import DeliveryRouteMap from './DeliveryRouteMap';
 
@@ -39,7 +37,10 @@ const statusLabels: Record<OrderStatus, string> = {
   cancelled: 'Otkazano',
 };
 
-const statusColors: Record<OrderStatus, 'warning' | 'info' | 'primary' | 'secondary' | 'success' | 'error'> = {
+const statusColors: Record<
+  OrderStatus,
+  'warning' | 'info' | 'primary' | 'secondary' | 'success' | 'error'
+> = {
   pending: 'warning',
   confirmed: 'info',
   preparing: 'primary',
@@ -65,11 +66,8 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
 }) => {
   const [packedItems, setPackedItems] = useState<Set<number>>(new Set());
 
-  // Reset packed items when order changes
   useEffect(() => {
-    if (order) {
-      setPackedItems(new Set());
-    }
+    if (order) setPackedItems(new Set());
   }, [order?.orderId]);
 
   if (!order) return null;
@@ -77,72 +75,77 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
   const totalItems = order.items.length;
   const packedCount = packedItems.size;
   const allPacked = packedCount === totalItems && totalItems > 0;
-  const packingProgress = totalItems > 0 ? (packedCount / totalItems) * 100 : 0;
+  const packingProgress = totalItems
+    ? (packedCount / totalItems) * 100
+    : 0;
 
-  const handleTogglePacked = (articleId: number) => {
+  const togglePacked = (articleId: number) => {
     setPackedItems(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(articleId)) {
-        newSet.delete(articleId);
-      } else {
-        newSet.add(articleId);
-      }
-      return newSet;
+      const set = new Set(prev);
+      set.has(articleId) ? set.delete(articleId) : set.add(articleId);
+      return set;
     });
+  };
+
+  const setStatus = (status: OrderStatus) => {
+    onStatusChange(order.orderId, status);
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="h6">
             Porudžbina #{order.orderId}
           </Typography>
           {order.verified && (
-            <Chip icon={<CheckCircleIcon />} label="Verifikovano" color="success" size="small" />
+            <Chip
+              icon={<CheckCircleIcon />}
+              label="Verifikovano"
+              color="success"
+              size="small"
+            />
           )}
         </Box>
       </DialogTitle>
+
       <DialogContent>
         <Stack spacing={3}>
-          {/* Customer Info */}
+          {/* KUPAC */}
           <Box>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+            <Typography variant="subtitle2" color="text.secondary">
               Podaci o kupcu
             </Typography>
-            <Typography fontWeight={600}>
-              {order.customerName}
-            </Typography>
+            <Typography fontWeight={600}>{order.customerName}</Typography>
             <Button
               startIcon={<PhoneIcon />}
-              onClick={() => onPhoneClick(order.orderId, order.phone)}
               color={order.verified ? 'success' : 'primary'}
+              onClick={() => onPhoneClick(order.orderId, order.phone)}
               sx={{ mt: 1 }}
             >
               {order.phone}
-              {!order.verified && ' (Klikni za verifikaciju)'}
             </Button>
           </Box>
 
-          {/* Customer Note/Info */}
+          {/* NAPOMENA */}
           {order.info && (
             <Box>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Napomena kupca
+              <Typography variant="subtitle2" color="text.secondary">
+                Napomena
               </Typography>
-              <Box sx={{ p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-                <Typography>{order.info}</Typography>
+              <Box p={2} bgcolor="grey.100" borderRadius={1}>
+                {order.info}
               </Box>
             </Box>
           )}
 
-          {/* Location with Route */}
+          {/* MAPA */}
           {order.location && order.lat && order.lng && (
             <Box>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Lokacija dostave sa rutom
+              <Typography variant="subtitle2" color="text.secondary">
+                Lokacija dostave
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 2 }}>
+              <Box display="flex" gap={1} mb={2}>
                 <LocationOnIcon color="primary" />
                 <Typography>{order.location}</Typography>
               </Box>
@@ -157,137 +160,130 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
 
           <Divider />
 
-          {/* Order Items with Packing Checkboxes */}
+          {/* PAKOVANJE */}
           <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <InventoryIcon color={allPacked ? 'success' : 'action'} />
-                <Typography variant="subtitle2" color="text.secondary">
-                  Pakovanje artikala ({packedCount}/{totalItems})
-                </Typography>
-              </Box>
+            <Box display="flex" justifyContent="space-between" mb={1}>
+              <Typography variant="subtitle2">
+                Pakovanje ({packedCount}/{totalItems})
+              </Typography>
               {allPacked && (
-                <Chip 
-                  icon={<CheckCircleIcon />} 
-                  label="Sve spakovano!" 
-                  color="success" 
-                  size="small" 
+                <Chip
+                  label="Sve spakovano"
+                  color="success"
+                  size="small"
                 />
               )}
             </Box>
-            <LinearProgress 
-              variant="determinate" 
-              value={packingProgress} 
+
+            <LinearProgress
+              variant="determinate"
+              value={packingProgress}
+              sx={{ height: 8, borderRadius: 4, mb: 2 }}
               color={allPacked ? 'success' : 'primary'}
-              sx={{ mb: 2, height: 8, borderRadius: 4 }}
             />
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell padding="checkbox">Spakovano</TableCell>
-                    <TableCell>Proizvod</TableCell>
-                    <TableCell align="right">Cena</TableCell>
-                    <TableCell align="right">Količina</TableCell>
-                    <TableCell align="right">Ukupno</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {order.items.map((item) => {
-                    const isPacked = packedItems.has(item.product.articleId);
-                    return (
-                      <TableRow 
-                        key={item.product.articleId}
-                        sx={{ 
-                          bgcolor: isPacked ? 'success.light' : 'inherit',
-                          opacity: isPacked ? 0.8 : 1,
-                          transition: 'all 0.2s ease',
-                        }}
-                      >
-                        <TableCell padding="checkbox">
-                          <Checkbox
-                            checked={isPacked}
-                            onChange={() => handleTogglePacked(item.product.articleId)}
-                            color="success"
-                          />
-                        </TableCell>
-                        <TableCell sx={{ textDecoration: isPacked ? 'line-through' : 'none' }}>
-                          {item.product.name}
-                        </TableCell>
-                        <TableCell align="right">{item.product.price} RSD</TableCell>
-                        <TableCell align="right">{item.quantity} {item.product.unit}</TableCell>
-                        <TableCell align="right">{item.product.price * item.quantity} RSD</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {order.deliveryFee > 0 && (
-                    <TableRow>
-                      <TableCell colSpan={3} align="right">
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
-                          <LocalShippingIcon fontSize="small" color="action" />
-                          <Typography>Dostava:</Typography>
-                        </Box>
+
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell />
+                  <TableCell>Artikal</TableCell>
+                  <TableCell align="right">Cena</TableCell>
+                  <TableCell align="right">Količina</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {order.items.map(i => {
+                  const packed = packedItems.has(i.product.articleId);
+                  return (
+                    <TableRow
+                      key={i.product.articleId}
+                      sx={{
+                        bgcolor: packed ? 'success.light' : undefined,
+                      }}
+                    >
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          checked={packed}
+                          onChange={() =>
+                            togglePacked(i.product.articleId)
+                          }
+                          color="success"
+                        />
+                      </TableCell>
+                      <TableCell>{i.product.name}</TableCell>
+                      <TableCell align="right">
+                        {i.product.price} RSD
                       </TableCell>
                       <TableCell align="right">
-                        <Typography>{order.deliveryFee} RSD</Typography>
+                        {i.quantity} {i.product.unit}
                       </TableCell>
                     </TableRow>
-                  )}
-                  {order.deliveryFee === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={3} align="right">
-                        <Typography>Dostava:</Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography color="success.main" fontWeight={600}>BESPLATNA</Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  <TableRow>
-                    <TableCell colSpan={3} align="right">
-                      <Typography fontWeight={700}>Ukupno za plaćanje:</Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography fontWeight={700} color="primary">
-                        {order.total} RSD
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </Box>
 
           <Divider />
 
-          {/* Status Change */}
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Status porudžbine
-            </Typography>
-            <FormControl fullWidth>
-              <Select
-                value={order.status}
-                onChange={(e) => onStatusChange(order.orderId, e.target.value as OrderStatus)}
-              >
-                {Object.entries(statusLabels).map(([key, label]) => (
-                  <MenuItem key={key} value={key}>
-                    <Chip 
-                      label={label} 
-                      size="small" 
-                      color={statusColors[key as OrderStatus]} 
-                      sx={{ mr: 1 }}
-                    />
-                    {label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
+          {/* STATUS SELECT */}
+          <FormControl fullWidth>
+            <Select
+              value={order.status}
+              onChange={e =>
+                setStatus(e.target.value as OrderStatus)
+              }
+            >
+              {Object.entries(statusLabels).map(([k, v]) => (
+                <MenuItem key={k} value={k}>
+                  <Chip
+                    size="small"
+                    label={v}
+                    color={statusColors[k as OrderStatus]}
+                    sx={{ mr: 1 }}
+                  />
+                  {v}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Stack>
       </DialogContent>
-      <DialogActions>
+
+      {/* AKCIJE */}
+      <DialogActions sx={{ justifyContent: 'space-between' }}>
         <Button onClick={onClose}>Zatvori</Button>
+
+        {['pending', 'confirmed', 'preparing'].includes(order.status) && (
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={<LocalShippingIcon />}
+            onClick={() => setStatus('delivering')}
+          >
+            Pokreni dostavu
+          </Button>
+        )}
+
+        {order.status === 'delivering' && (
+          <Stack direction="row" spacing={2}>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() => setStatus('cancelled')}
+            >
+              Otkazano
+            </Button>
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<CheckCircleIcon />}
+              onClick={() => setStatus('delivered')}
+            >
+              Dostavljeno
+            </Button>
+          </Stack>
+        )}
       </DialogActions>
     </Dialog>
   );
