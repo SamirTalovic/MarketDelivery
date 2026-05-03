@@ -3,7 +3,23 @@ export interface Category {
   name: string;
   emoji?: string;
 }
+export interface BKCImportItem {
+    ime: string;
+    cena: number;
+    jedinica: string;
+    kategorijaIme: string;
+    idArtiklaBKC: number;
+    idKategorijeBKC: number;
+}
 
+export interface SyncPayload {
+    name: string;
+    price: number;
+    unit: string;
+    categoryName: string;
+    articleIdBKC: number;
+    categoryIdBKC: number;
+}
 export interface Product {
   articleId: number;
   name: string;
